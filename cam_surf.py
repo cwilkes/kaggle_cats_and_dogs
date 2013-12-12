@@ -13,15 +13,15 @@ rad = 2
 
 
 class ImageMethods(object):
-    def do_line(self, img, gray):
+    def do_line(self, img, gray, dest):
         edges = cv2.Canny(gray, 50, 150, apertureSize = 3)
         minLineLength = 100
         maxLineGap = 10
         lines = cv2.HoughLinesP(edges, 1, np.pi/180, 100, minLineLength, maxLineGap)
         for x1, y1, x2, y2 in lines[0]:
-            cv2.line(img,(x1,y1),(x2,y2),(0,255,0),2)
+            cv2.line(dest, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-    def do_surf(self, img, gray):
+    def do_surf(self, img, gray, dest):
         #Detect keypoints and descriptors in greyscale image
         #keypoints, descriptors = surf.detect(gray)
         keypoints = surf.detect(gray)
@@ -31,12 +31,12 @@ class ImageMethods(object):
         for kp in keypoints:
             x = int(kp.pt[0])
             y = int(kp.pt[1])
-            cv2.circle(img, (x, y), rad, (0, 0, 255))
+            cv2.circle(dest, (x, y), rad, (0, 0, 255))
 
-    def do_edge(self, img, gray):
+    def do_edge(self, img, gray, dest):
         edges = cv2.Canny(img, 100, 200)
         for channel in (0, 1, 2):
-            img[:, :, channel] = cv2.max(img[:, :, channel], edges)
+            dest[:, :, channel] = cv2.max(dest[:, :, channel], edges)
 
 
 def main(args):
@@ -50,16 +50,14 @@ def main(args):
         actions.append(getattr(im, 'do_%s' % (_, )))
 
     cam = cv2.VideoCapture(0)
-    action_pos = 0
     while True:
         #Get image from webcam and convert to greyscale
         ret, img = cam.read()
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        if action_pos == len(actions):
-            action_pos = 0
-        actions[action_pos](img, gray)
-        action_pos+=1
-        cv2.imshow("features", img)
+        dest = np.copy(img)
+        for action in actions:
+            action(img, gray, dest)
+        cv2.imshow("features", dest)
         #Sleep infinite loop for ~10ms
         #Exit if user presses <Esc>
         if cv2.waitKey(10) == 27:
