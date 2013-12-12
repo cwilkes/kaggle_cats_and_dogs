@@ -1,9 +1,9 @@
 import cv2
 import sys
 import numpy as np
+import argparse
 
 #Create object to read images from camera 0
-cam = cv2.VideoCapture(0)
 
 #Initialize SURF object
 surf = cv2.SURF(85)
@@ -13,7 +13,7 @@ rad = 2
 
 
 def do_hough_lines(img, gray):
-    edges = cv2.Canny(gray,50,150,apertureSize = 3)
+    edges = cv2.Canny(gray, 50, 150, apertureSize = 3)
     minLineLength = 100
     maxLineGap = 10
     lines = cv2.HoughLinesP(edges, 1, np.pi/180, 100, minLineLength, maxLineGap)
@@ -34,11 +34,25 @@ def do_surf(img, gray):
         cv2.circle(img, (x, y), rad, (0, 0, 255))
 
 
+def do_edge(img, gray):
+    edges = cv2.Canny(img, 100, 200)
+    for channel in (0, 1, 2):
+        img[:, :, channel] = cv2.max(img[:, :, channel], edges)
+
+
 def main(args):
-    if len(args) <= 1:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('type', choices=['line', 'surf', 'edge'])
+    pa = parser.parse_args()
+    if pa.type == 'line':
+        action = do_hough_lines
+    elif pa.type == 'surf':
         action = do_surf
     else:
-        action = do_hough_lines
+        action = do_edge
+
+    cam = cv2.VideoCapture(0)
+
     while True:
         #Get image from webcam and convert to greyscale
         ret, img = cam.read()
